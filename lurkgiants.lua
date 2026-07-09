@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Valley Prison Phantom",
+   Name = "Lurking Giants Phantom",
    Icon = "ghost",
    LoadingTitle = "Phantom",
    LoadingSubtitle = "by outtee",
@@ -33,24 +33,39 @@ local CONFIG = {
     OutlineOpacity = 0.2,
 }
 
+local TEAM_COLORS = {
+    ["lobby"] = {Fill = Color3.fromRGB(255, 255, 255), Outline = Color3.fromRGB(150, 150, 150)},
+    ["giant"] = {Fill = Color3.fromRGB(255, 45, 85), Outline = Color3.fromRGB(100, 18, 33)},
+    ["round"] = {Fill = Color3.fromRGB(0, 255, 100), Outline = Color3.fromRGB(0, 100, 35)},
+}
+
 local isEnabled = false
+local isFullbrightEnabled = false
+local originalLighting = {}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Lighting = game:GetService("Lighting")
+
+local activeChams = {}
+local activeConnections = {}
 
 local function normalize(str)
     if not str then return "" end
     return string.lower(string.gsub(str, "%s+", ""))
 end
 
-local TARGET_TEAMS = {
-    ["minimumsecurity"] = true,
-    ["mediumsecurity"] = true,
-    ["maximumsecurity"] = true,
-}
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local activeChams = {}
-local activeConnections = {}
+local function getPlayerColors(player)
+    local team = player.Team
+    if team then
+        local normalizedTeam = normalize(team.Name)
+        local colors = TEAM_COLORS[normalizedTeam]
+        if colors then
+            return colors.Fill, colors.Outline
+        end
+    end
+    return CONFIG.Color, CONFIG.OutlineColor
+end
 
 local function cleanUp()
     for _, connection in ipairs(activeConnections) do
@@ -79,35 +94,8 @@ local function cleanUp()
     end
 end
 
-local function checkContainerForContraband(container)
-    if not container then return false end
-
-    for _, child in ipairs(container:GetChildren()) do
-        if child:FindFirstChild("ToggleInnocence") then
-            return true
-        end
-    end
-
-    return false
-end
-
 local function shouldHighlight(player)
-    if player == LocalPlayer then return false end
-
-    local localTeam = LocalPlayer.Team
-    if not localTeam or normalize(localTeam.Name) ~= "departmentofcorrections" then
-        return false
-    end
-
-    local targetTeam = player.Team
-    if not targetTeam or not TARGET_TEAMS[normalize(targetTeam.Name)] then
-        return false
-    end
-
-    local hasContraband = checkContainerForContraband(player:FindFirstChild("Backpack")) 
-        or checkContainerForContraband(player.Character)
-
-    return hasContraband
+    return player ~= LocalPlayer
 end
 
 local function updatePlayerCham(player)
@@ -124,13 +112,19 @@ local function updatePlayerCham(player)
         return
     end
 
-    if activeChams[character] then return end
+    local fillColor, outlineColor = getPlayerColors(player)
+
+    if activeChams[character] then
+        activeChams[character].FillColor = fillColor
+        activeChams[character].OutlineColor = outlineColor
+        return
+    end
 
     local highlight = Instance.new("Highlight")
     highlight.Name = "Cham_" .. player.Name
-    highlight.FillColor = CONFIG.Color
+    highlight.FillColor = fillColor
     highlight.FillTransparency = CONFIG.FillOpacity
-    highlight.OutlineColor = CONFIG.OutlineColor
+    highlight.OutlineColor = outlineColor
     highlight.OutlineTransparency = CONFIG.OutlineOpacity
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
@@ -147,46 +141,12 @@ local function updatePlayerCham(player)
     table.insert(activeConnections, ancestryConn)
 end
 
-local function updateAllPlayers()
-    for _, player in ipairs(Players:GetPlayers()) do
-        updatePlayerCham(player)
-    end
-end
-
 local function monitorPlayer(player)
     local function check()
         task.defer(updatePlayerCham, player)
     end
 
-    local function watchBackpack(bp)
-        local bpAdded = bp.DescendantAdded:Connect(check)
-        local bpRemoved = bp.DescendantRemoving:Connect(check)
-        table.insert(activeConnections, bpAdded)
-        table.insert(activeConnections, bpRemoved)
-    end
-
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        watchBackpack(backpack)
-    end
-    
-    local bpFolderAdded = player.ChildAdded:Connect(function(child)
-        if child.Name == "Backpack" then
-            watchBackpack(child)
-            check()
-        end
-    end)
-    table.insert(activeConnections, bpFolderAdded)
-
-    local function watchCharacter(char)
-        local charChildAdded = char.DescendantAdded:Connect(check)
-        local charChildRemoved = char.DescendantRemoving:Connect(check)
-        table.insert(activeConnections, charChildAdded)
-        table.insert(activeConnections, charChildRemoved)
-    end
-
     local charAdded = player.CharacterAdded:Connect(function(char)
-        watchCharacter(char)
         check()
     end)
     local charRemoving = player.CharacterRemoving:Connect(function(char)
@@ -197,10 +157,6 @@ local function monitorPlayer(player)
     end)
     table.insert(activeConnections, charAdded)
     table.insert(activeConnections, charRemoving)
-    
-    if player.Character then
-        watchCharacter(player.Character)
-    end
 
     local teamChanged = player:GetPropertyChangedSignal("Team"):Connect(check)
     table.insert(activeConnections, teamChanged)
@@ -213,7 +169,6 @@ local function buildChams(state: boolean)
     cleanUp()
 
     if state ~= true then
-        print("[Madium Chams] Chams disabled and cleaned up.")
         return
     end
 
@@ -233,19 +188,57 @@ local function buildChams(state: boolean)
         end
     end)
     table.insert(activeConnections, playerRemoving)
-
-    local localTeamConn = LocalPlayer:GetPropertyChangedSignal("Team"):Connect(updateAllPlayers)
-    table.insert(activeConnections, localTeamConn)
-
-    print("[Madium Chams] Chams initialized and tracking.")
 end
 
-local InnoChams = MainTab:CreateToggle({
-   Name = "Item Cham",
+local function toggleFullbright(state)
+    isFullbrightEnabled = state
+    if state then
+        originalLighting.Ambient = Lighting.Ambient
+        originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+        originalLighting.Brightness = Lighting.Brightness
+        originalLighting.GlobalShadows = Lighting.GlobalShadows
+        originalLighting.ClockTime = Lighting.ClockTime
+        originalLighting.FogEnd = Lighting.FogEnd
+        originalLighting.FogStart = Lighting.FogStart
+        
+        task.spawn(function()
+            while isFullbrightEnabled do
+                Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+                Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+                Lighting.Brightness = 2
+                Lighting.GlobalShadows = false
+                Lighting.ClockTime = 14
+                Lighting.FogEnd = 999999
+                task.wait()
+            end
+        end)
+    else
+        if originalLighting.Ambient then
+            Lighting.Ambient = originalLighting.Ambient
+            Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+            Lighting.Brightness = originalLighting.Brightness
+            Lighting.GlobalShadows = originalLighting.GlobalShadows
+            Lighting.ClockTime = originalLighting.ClockTime
+            Lighting.FogEnd = originalLighting.FogEnd
+            Lighting.FogStart = originalLighting.FogStart
+        end
+    end
+end
+
+local Chams = MainTab:CreateToggle({
+   Name = "Chams",
    CurrentValue = false,
    Callback = function(Value)
         buildChams(Value)
    end,
+})
+
+local Fullbright = MainTab:CreateToggle({
+    Name = "Fullbright",
+    CurrentValue = false,
+    Callback = function(Value)
+        toggleFullbright(Value)
+    end,
 })
 
 local MiscTab = Window:CreateTab("Misc")
@@ -254,6 +247,7 @@ local DestroyButton = MiscTab:CreateButton({
     Name = "Destroy UI",
     Callback = function()
         buildChams(false)
+        toggleFullbright(false)
         Rayfield:Destroy()
     end,
 })
