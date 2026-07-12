@@ -20,8 +20,8 @@ end
 
 if gamee ~= nil then
     StarterGui:SetCore("SendNotification", {
-        Title = "Phantom Loading",
-        Text = "Loading " .. gamee .. " script...",
+        Title = "Phantom Loaded",
+        Text = "Loaded " .. gamee .. " script...",
         Duration = 5,
     })
 end
