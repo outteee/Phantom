@@ -131,31 +131,29 @@ local function setKeycardHoldDuration(duration)
     })
 end
 
-MainTab:CreateButton({
+MainTab:CreateToggle({
     Name = "Quick Bin",
-    Callback = function()
-        setBinHoldDuration(0)
+    CurrentValue = false,
+    Flag = "QuickBin",
+    Callback = function(Value)
+        if Value then
+            setBinHoldDuration(0)
+        else
+            setBinHoldDuration(3)
+        end
     end,
 })
 
-MainTab:CreateButton({
-    Name = "Undo Quick Bin",
-    Callback = function()
-        setBinHoldDuration(3)
-    end,
-})
-
-MainTab:CreateButton({
+MainTab:CreateToggle({
     Name = "Quick Keycards",
-    Callback = function()
-        setKeycardHoldDuration(0)
-    end,
-})
-
-MainTab:CreateButton({
-    Name = "Undo Quick Keycards",
-    Callback = function()
-        setKeycardHoldDuration(1)
+    CurrentValue = false,
+    Flag = "QuickKeycards",
+    Callback = function(Value)
+        if Value then
+            setKeycardHoldDuration(0)
+        else
+            setKeycardHoldDuration(1)
+        end
     end,
 })
 
