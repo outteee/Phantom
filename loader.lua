@@ -30,14 +30,12 @@ elseif ID == 2548183080 then
 elseif ID == 5456952508 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/valley.lua"))()
     gamee = "Valley Prison"
+elseif ID == 5456952508 and dateCheck() then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/valley2.lua"))()
+    gamee = "Valley Prison Gen 2"
 elseif ID == 2339944792 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/lurkgiants.lua"))()
     gamee = "Lurking Giants"
-end
-
-if dateCheck() and gamee == nil then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/valley2.lua"))()
-    gamee = "Valley Prison Gen 2"
 end
 
 if gamee ~= nil then
