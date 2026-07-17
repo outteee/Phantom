@@ -226,11 +226,6 @@ end
 local function shouldCham(player)
     if player == LocalPlayer then return false end
 
-    local localTeam = LocalPlayer.Team
-    if not localTeam or normalize(localTeam.Name) ~= "departmentofcorrections" then
-        return false
-    end
-
     local targetTeam = player.Team
     if not targetTeam or not TARGET_TEAMS[normalize(targetTeam.Name)] then
         return false
@@ -364,9 +359,6 @@ local function buildChams(state)
         end
     end)
     table.insert(chamConnections, playerRemoving)
-
-    local localTeamConn = LocalPlayer:GetPropertyChangedSignal("Team"):Connect(updateAllChamPlayers)
-    table.insert(chamConnections, localTeamConn)
 end
 
 --=====================================================
@@ -531,4 +523,4 @@ MiscTab:CreateButton({
     end,
 })
 
-Rayfield:LoadConfiguration()
+Rayfield:LoadConfiguration()    

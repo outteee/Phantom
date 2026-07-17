@@ -4,6 +4,23 @@ local StarterGui = game:GetService("StarterGui")
 
 local gamee = nil
 
+local function dateCheck()
+	local currentTime = os.date("*t")
+	local currentMonth = currentTime.month
+	local currentDay = currentTime.day
+
+	local targetMonth = 7
+	local targetDay = 22
+
+	if currentMonth > targetMonth then
+		return true
+	elseif currentMonth == targetMonth and currentDay >= targetDay then
+		return true
+	else
+		return false
+	end
+end
+
 if ID == 6170143659 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/demonology.lua"))()
     gamee = "Demonology"
@@ -16,6 +33,11 @@ elseif ID == 5456952508 then
 elseif ID == 2339944792 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/lurkgiants.lua"))()
     gamee = "Lurking Giants"
+end
+
+if dateCheck() then
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/valley2.lua"))()
+    gamee = "Valley Prison Gen 2"
 end
 
 if gamee ~= nil then
