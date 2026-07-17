@@ -35,7 +35,7 @@ elseif ID == 2339944792 then
     gamee = "Lurking Giants"
 end
 
-if dateCheck() then
+if dateCheck() and gamee == nil then
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/outteee/Phantom/main/valley2.lua"))()
     gamee = "Valley Prison Gen 2"
 end
